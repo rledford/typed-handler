@@ -1,0 +1,51 @@
+# Source files
+src/
+tests/
+examples/
+docs/
+
+# Configuration files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+biome.json
+.changeset/
+.github/
+.vscode/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Git
+.git/
+.gitignore
+
+# Testing and coverage
+coverage/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Development files
+*.md
+!README.md
+.editorconfig
+.eslintrc*
+.prettierrc*
+
+# Environment
+.env
+.env.*
+
+# Build artifacts
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

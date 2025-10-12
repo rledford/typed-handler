@@ -1,0 +1,98 @@
+version: "3.8"
+
+services:
+  # Development server with hot reload
+  dev:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+      # Cache pnpm store
+      - pnpm-store:/root/.local/share/pnpm/store
+    ports:
+      - "3000:3000"
+    command: pnpm dev
+    environment:
+      - NODE_ENV=development
+      - FORCE_COLOR=1
+    stdin_open: true
+    tty: true
+
+  # Test runner with watch mode
+  test:
+    build:
+      context: .
+      target: test
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - pnpm-store:/root/.local/share/pnpm/store
+    command: pnpm test:watch
+    environment:
+      - NODE_ENV=test
+      - FORCE_COLOR=1
+    stdin_open: true
+    tty: true
+
+  # One-off test with coverage
+  test-coverage:
+    build:
+      context: .
+      target: test
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - pnpm-store:/root/.local/share/pnpm/store
+    command: pnpm test:coverage
+    environment:
+      - NODE_ENV=test
+      - FORCE_COLOR=1
+
+  # Build the library
+  build:
+    build:
+      context: .
+      target: builder
+      dockerfile: Dockerfile
+    volumes:
+      - ./dist:/app/dist
+    environment:
+      - NODE_ENV=production
+
+  # Lint and format
+  lint:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - pnpm-store:/root/.local/share/pnpm/store
+    command: pnpm lint
+    environment:
+      - FORCE_COLOR=1
+
+  # Type checking
+  type-check:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - pnpm-store:/root/.local/share/pnpm/store
+    command: pnpm type-check
+    environment:
+      - FORCE_COLOR=1
+
+volumes:
+  pnpm-store:
