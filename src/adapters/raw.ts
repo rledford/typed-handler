@@ -1,7 +1,3 @@
-/**
- * Raw adapter (placeholder)
- */
-
 import type { Handler } from "../handler.js";
 
 export interface RawHandler<TInput, TContext, TOutput> {
@@ -11,5 +7,8 @@ export interface RawHandler<TInput, TContext, TOutput> {
 export function toRaw<TInput, TContext, TOutput>(
 	handler: Handler<TInput, TContext, TOutput>,
 ): RawHandler<TInput, TContext, TOutput> {
-	throw new Error("Not implemented");
+	return {
+		execute: (input: TInput, context?: Partial<TContext>) =>
+			handler.execute(input, context as TContext),
+	};
 }

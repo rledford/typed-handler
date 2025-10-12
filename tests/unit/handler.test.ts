@@ -274,4 +274,41 @@ describe("Handler Execution", () => {
 		const result = await h.execute({ value: 42 });
 		expect(result).toEqual({ result: 42 });
 	});
+
+	it("express() convenience method should return express handler", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => input);
+
+		const expressHandler = await h.express();
+		expect(typeof expressHandler).toBe("function");
+	});
+
+	it("fastify() convenience method should return fastify handler", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => input);
+
+		const fastifyHandler = await h.fastify();
+		expect(typeof fastifyHandler).toBe("function");
+	});
+
+	it("hono() convenience method should return hono handler", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => input);
+
+		const honoHandler = await h.hono();
+		expect(typeof honoHandler).toBe("function");
+	});
+
+	it("raw() convenience method should return raw handler", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => input);
+
+		const rawHandler = await h.raw();
+		expect(rawHandler).toHaveProperty("execute");
+		expect(typeof rawHandler.execute).toBe("function");
+	});
 });
