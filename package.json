@@ -84,7 +84,7 @@
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
-    "pre-push": "pnpm type-check && vitest run"
+    "pre-push": "pnpm type-check && pnpm exec vitest run"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json}": ["biome check --apply"]
