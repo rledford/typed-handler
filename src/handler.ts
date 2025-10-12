@@ -2,15 +2,9 @@
  * Main Handler class for building type-safe request handlers
  */
 
-import type {
-	HandlerFunction,
-	Middleware,
-	HandlerConfig,
-	ValidatorAdapter,
-} from "./types.js";
 import { getConfig } from "./config.js";
+import type { HandlerConfig, HandlerFunction, Middleware, ValidatorAdapter } from "./types.js";
 
-// biome-ignore lint/complexity/noStaticOnlyClass: Factory pattern placeholder
 export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 	private inputValidator?: {
 		schema: unknown;
@@ -33,10 +27,7 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 	}
 
 	// Placeholder methods - to be implemented
-	input<T>(
-		schema?: unknown,
-		adapter?: ValidatorAdapter<T>,
-	): Handler<T, TContext, TOutput> {
+	input<T>(schema?: unknown, adapter?: ValidatorAdapter<T>): Handler<T, TContext, TOutput> {
 		throw new Error("Not implemented");
 	}
 
@@ -46,16 +37,11 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 		throw new Error("Not implemented");
 	}
 
-	handle<TOut>(
-		fn: HandlerFunction<TInput, TContext, TOut>,
-	): Handler<TInput, TContext, TOut> {
+	handle<TOut>(fn: HandlerFunction<TInput, TContext, TOut>): Handler<TInput, TContext, TOut> {
 		throw new Error("Not implemented");
 	}
 
-	output<T>(
-		schema?: unknown,
-		adapter?: ValidatorAdapter<T>,
-	): Handler<TInput, TContext, T> {
+	output<T>(schema?: unknown, adapter?: ValidatorAdapter<T>): Handler<TInput, TContext, T> {
 		throw new Error("Not implemented");
 	}
 

@@ -14,6 +14,7 @@ export default defineConfig({
 				"**/examples/**",
 				"**/*.config.*",
 				"**/.changeset/**",
+				"**/*.test-d.ts",
 			],
 			thresholds: {
 				lines: 90,

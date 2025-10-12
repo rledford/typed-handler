@@ -3,5 +3,5 @@ export {
 	zodAdapter,
 	joiAdapter,
 	yupAdapter,
-} from './adapters.js';
-export { detectValidator } from './detector.js';
+} from "./adapters.js";
+export { detectValidator } from "./detector.js";

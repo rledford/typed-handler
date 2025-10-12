@@ -123,6 +123,7 @@ describe("Validator Detector", () => {
 		const customAdapter = {
 			name: "custom",
 			detect: () => true,
+			// biome-ignore lint/suspicious/noExplicitAny: Test adapter with dynamic schema
 			parse: async (schema: any, data: unknown) => data,
 		};
 		registerAdapter(customAdapter);
