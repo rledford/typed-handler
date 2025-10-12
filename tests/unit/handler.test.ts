@@ -1,159 +1,277 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { configure, resetConfig } from "../../src/config.js";
-import { Handler, handler } from "../../src/handler.js";
+import { z } from "zod";
+import { configure, handler, resetConfig } from "../../src/index.js";
 
-describe("Handler Class", () => {
+describe("Handler Factory", () => {
 	beforeEach(() => {
 		resetConfig();
 	});
 
-	describe("handler factory", () => {
-		it("should create a new Handler instance", () => {
-			const h = handler();
-			expect(h).toBeInstanceOf(Handler);
-		});
+	it("handler() should create new Handler instance", () => {
+		const h = handler();
+		expect(h).toBeDefined();
+		expect(typeof h.input).toBe("function");
+		expect(typeof h.use).toBe("function");
+		expect(typeof h.handle).toBe("function");
+		expect(typeof h.output).toBe("function");
+		expect(typeof h.execute).toBe("function");
+	});
 
-		it("should create Handler with default config", () => {
-			const h = handler();
-			expect(h).toBeDefined();
-		});
+	it("handler() should merge per-handler config with global config", async () => {
+		configure({ validateInput: false });
+		const schema = z.object({ value: z.number() });
+		const h = handler({ validateInput: true })
+			.input(schema)
+			.handle(async (input) => input);
 
-		it("should create Handler with custom config", () => {
-			const customLogger = {
-				error: () => {},
-				warn: () => {},
-				info: () => {},
-				debug: () => {},
-			};
-			const h = handler({ logger: customLogger });
-			expect(h).toBeInstanceOf(Handler);
-		});
+		await expect(h.execute({ value: "invalid" })).rejects.toThrow();
+	});
+});
 
-		it("should create Handler with partial config", () => {
-			const h = handler({ validateInput: false });
-			expect(h).toBeInstanceOf(Handler);
+describe("Handler Builder Methods", () => {
+	beforeEach(() => {
+		resetConfig();
+	});
+
+	it("input() should store schema", () => {
+		const schema = z.object({ name: z.string() });
+		const h = handler().input(schema);
+		expect(h).toBeDefined();
+	});
+
+	it("input() should detect multi-input schemas", async () => {
+		const schema = {
+			body: z.object({ name: z.string() }),
+			query: z.object({ page: z.string() }),
+		};
+		const h = handler()
+			.input(schema)
+			.handle(async (input) => input);
+
+		expect(h.expectsMultiInput()).toBe(true);
+
+		const result = await h.execute({
+			body: { name: "test" },
+			query: { page: "1" },
+		});
+		expect(result).toEqual({
+			body: { name: "test" },
+			query: { page: "1" },
 		});
 	});
 
-	describe("Handler constructor", () => {
-		it("should create instance without config", () => {
-			const h = new Handler();
-			expect(h).toBeInstanceOf(Handler);
-		});
+	it("input() with no schema should enable type-only mode", async () => {
+		const h = handler<{ req: unknown }>()
+			.input<{ id: string }>()
+			.handle(async (input) => input);
 
-		it("should create instance with config", () => {
-			const h = new Handler({ validateOutput: true });
-			expect(h).toBeInstanceOf(Handler);
-		});
-
-		it("should merge global config with instance config", () => {
-			configure({ validateInput: false });
-			const h = new Handler({ validateOutput: true });
-			expect(h).toBeInstanceOf(Handler);
-		});
+		const result = await h.execute({ id: "123" });
+		expect(result).toEqual({ id: "123" });
 	});
 
-	describe("input method", () => {
-		it('should throw "Not implemented" error', () => {
-			const h = handler();
-			expect(() => h.input({})).toThrow("Not implemented");
-		});
+	it("use() should append middleware to chain", async () => {
+		const order: number[] = [];
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => {
+				order.push(1);
+				return { first: true };
+			})
+			.use(async () => {
+				order.push(2);
+				return { second: true };
+			})
+			.handle(async (input, ctx) => ({ input, ctx }));
 
-		it('should throw "Not implemented" with schema', () => {
-			const h = handler();
-			const schema = { type: "object" };
-			expect(() => h.input(schema)).toThrow("Not implemented");
-		});
-
-		it('should throw "Not implemented" with adapter', () => {
-			const h = handler();
-			const adapter = {
-				name: "test",
-				detect: () => true,
-				parse: async () => ({}),
-			};
-			expect(() => h.input({}, adapter)).toThrow("Not implemented");
-		});
+		const result = await h.execute({ value: 42 });
+		expect(order).toEqual([1, 2]);
+		expect(result.ctx).toEqual({ first: true, second: true });
 	});
 
-	describe("use method", () => {
-		it('should throw "Not implemented" error', () => {
-			const h = handler();
-			const middleware = async () => ({ test: true });
-			expect(() => h.use(middleware)).toThrow("Not implemented");
-		});
+	it("use() should not mutate original handler (immutability)", () => {
+		const h1 = handler();
+		const h2 = h1.use(async () => ({ test: true }));
+		expect(h1).not.toBe(h2);
 	});
 
-	describe("handle method", () => {
-		it('should throw "Not implemented" error', () => {
-			const h = handler();
-			const handlerFn = async () => ({ result: true });
-			expect(() => h.handle(handlerFn)).toThrow("Not implemented");
-		});
+	it("handle() should store handler function", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }));
 
-		it('should throw "Not implemented" with typed handler', () => {
-			const h = handler();
-			const handlerFn = async (input: unknown, ctx: object) => ({ result: true });
-			expect(() => h.handle(handlerFn)).toThrow("Not implemented");
-		});
+		const result = await h.execute({ value: 21 });
+		expect(result).toEqual({ result: 42 });
 	});
 
-	describe("output method", () => {
-		it('should throw "Not implemented" error', () => {
-			const h = handler();
-			expect(() => h.output({})).toThrow("Not implemented");
-		});
+	it("output() should store output schema", async () => {
+		configure({ validateOutput: true });
+		const inputSchema = z.object({ value: z.number() });
+		const outputSchema = z.object({ result: z.number() });
 
-		it('should throw "Not implemented" with schema', () => {
-			const h = handler();
-			const schema = { type: "object" };
-			expect(() => h.output(schema)).toThrow("Not implemented");
-		});
+		const h = handler()
+			.input(inputSchema)
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.output(outputSchema);
 
-		it('should throw "Not implemented" with adapter', () => {
-			const h = handler();
-			const adapter = {
-				name: "test",
-				detect: () => true,
-				parse: async () => ({}),
-			};
-			expect(() => h.output({}, adapter)).toThrow("Not implemented");
-		});
+		const result = await h.execute({ value: 21 });
+		expect(result).toEqual({ result: 42 });
+	});
+});
+
+describe("Handler Execution", () => {
+	beforeEach(() => {
+		resetConfig();
 	});
 
-	describe("execute method", () => {
-		it('should throw "Not implemented" error', async () => {
-			const h = handler();
-			await expect(h.execute({})).rejects.toThrow("Not implemented");
-		});
+	it("execute() should validate input when enabled", async () => {
+		const schema = z.object({ name: z.string() });
+		const h = handler()
+			.input(schema)
+			.handle(async (input) => input);
 
-		it('should throw "Not implemented" with input', async () => {
-			const h = handler();
-			await expect(h.execute({ data: "test" })).rejects.toThrow("Not implemented");
-		});
-
-		it('should throw "Not implemented" with context', async () => {
-			const h = handler();
-			await expect(h.execute({}, { req: {} })).rejects.toThrow("Not implemented");
-		});
-
-		it('should throw "Not implemented" with input and context', async () => {
-			const h = handler();
-			await expect(h.execute({ data: "test" }, { req: {} })).rejects.toThrow("Not implemented");
-		});
+		await expect(h.execute({ name: 123 })).rejects.toThrow();
 	});
 
-	describe("multiple handler instances", () => {
-		it("should create independent handler instances", () => {
-			const h1 = handler();
-			const h2 = handler();
-			expect(h1).not.toBe(h2);
+	it("execute() should skip input validation when disabled", async () => {
+		configure({ validateInput: false });
+		const schema = z.object({ name: z.string() });
+		const h = handler()
+			.input(schema)
+			.handle(async (input) => input);
+
+		const result = await h.execute({ name: 123 });
+		expect(result).toEqual({ name: 123 });
+	});
+
+	it("execute() should run middleware chain in order", async () => {
+		const order: string[] = [];
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => {
+				order.push("first");
+				return {};
+			})
+			.use(async () => {
+				order.push("second");
+				return {};
+			})
+			.use(async () => {
+				order.push("third");
+				return {};
+			})
+			.handle(async () => order);
+
+		await h.execute({ value: 1 });
+		expect(order).toEqual(["first", "second", "third"]);
+	});
+
+	it("execute() should build context from middleware results", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => ({ user: "alice" }))
+			.use(async () => ({ role: "admin" }))
+			.handle(async (input, ctx) => ctx);
+
+		const result = await h.execute({ value: 1 });
+		expect(result).toEqual({ user: "alice", role: "admin" });
+	});
+
+	it("execute() should execute handler function with input and context", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => ({ multiplier: 3 }))
+			.handle(async (input, ctx) => ({
+				original: input.value,
+				multiplied: input.value * ctx.multiplier,
+			}));
+
+		const result = await h.execute({ value: 7 });
+		expect(result).toEqual({ original: 7, multiplied: 21 });
+	});
+
+	it("execute() should validate output when enabled", async () => {
+		configure({ validateOutput: true });
+		const outputSchema = z.object({ result: z.number() });
+
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async () => ({ result: "invalid" }))
+			.output(outputSchema);
+
+		await expect(h.execute({ value: 1 })).rejects.toThrow();
+	});
+
+	it("execute() should skip output validation when disabled", async () => {
+		configure({ validateOutput: false });
+		const outputSchema = z.object({ result: z.number() });
+
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async () => ({ result: "invalid" }))
+			.output(outputSchema);
+
+		const result = await h.execute({ value: 1 });
+		expect(result).toEqual({ result: "invalid" });
+	});
+
+	it("execute() should throw if handler function not defined", async () => {
+		const h = handler().input(z.object({ value: z.number() }));
+
+		await expect(h.execute({ value: 1 })).rejects.toThrow("Handler function not defined");
+	});
+
+	it("expectsMultiInput() should return true for multi-input schemas", () => {
+		const h = handler().input({
+			body: z.object({ name: z.string() }),
+			query: z.object({ page: z.string() }),
 		});
 
-		it("should create independent handlers with different configs", () => {
-			const h1 = handler({ validateInput: false });
-			const h2 = handler({ validateOutput: true });
-			expect(h1).not.toBe(h2);
-		});
+		expect(h.expectsMultiInput()).toBe(true);
+	});
+
+	it("expectsMultiInput() should return false for single input", () => {
+		const h = handler().input(z.object({ name: z.string() }));
+		expect(h.expectsMultiInput()).toBe(false);
+	});
+
+	it("execute() should handle unknown validator schema gracefully", async () => {
+		const unknownSchema = { customValidator: true };
+		const h = handler()
+			.input(unknownSchema)
+			.handle(async (input) => input);
+
+		const result = await h.execute({ value: 123 });
+		expect(result).toEqual({ value: 123 });
+	});
+
+	it("execute() should handle output validation with unknown schema gracefully", async () => {
+		configure({ validateOutput: true });
+		const unknownSchema = { customValidator: true };
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value }))
+			.output(unknownSchema);
+
+		const result = await h.execute({ value: 123 });
+		expect(result).toEqual({ result: 123 });
+	});
+
+	it("input() with no schema should allow type-only validation", async () => {
+		const h = handler()
+			.input<{ id: number }>()
+			.handle(async (input) => input);
+
+		const result = await h.execute({ id: 42 });
+		expect(result).toEqual({ id: 42 });
+	});
+
+	it("output() with no schema should allow type-only output", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value }))
+			.output<{ result: number }>();
+
+		const result = await h.execute({ value: 42 });
+		expect(result).toEqual({ result: 42 });
 	});
 });

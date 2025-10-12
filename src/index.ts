@@ -5,7 +5,7 @@
  */
 
 export { handler } from "./handler.js";
-export { configure, getConfig } from "./config.js";
+export { configure, getConfig, resetConfig } from "./config.js";
 export { registerAdapter } from "./validators/registry.js";
 
 // Export types
