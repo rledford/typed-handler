@@ -26,24 +26,20 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
       "import": "./dist/adapters/index.js",
-      "require": "./dist/adapters/index.cjs",
-      "types": "./dist/adapters/index.d.ts"
+      "require": "./dist/adapters/index.cjs"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "dev": "tsx watch examples/express-zod/index.ts",
-    "build": "tsup",
+    "build": "tsup && cp index.test-d.ts dist/",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
@@ -88,12 +84,10 @@
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
-    "pre-push": "pnpm type-check && pnpm test --run"
+    "pre-push": "pnpm type-check && pnpm exec vitest run"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json}": [
-      "biome check --apply"
-    ]
+    "*.{ts,tsx,js,jsx,json}": ["biome check --apply"]
   },
   "packageManager": "pnpm@8.15.0"
 }

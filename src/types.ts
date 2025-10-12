@@ -45,20 +45,15 @@ export interface HandlerConfig {
 }
 
 // Type inference helpers
-// biome-ignore lint/suspicious/noExplicitAny: Required for type inference
 export type InferInput<V> = V extends { parse: (data: unknown) => infer T }
 	? T
-	: // biome-ignore lint/suspicious/noExplicitAny: Required for type inference
-		V extends { parseAsync: (data: unknown) => Promise<infer T> }
+	: V extends { parseAsync: (data: unknown) => Promise<infer T> }
 		? T
-		: // biome-ignore lint/suspicious/noExplicitAny: Required for type inference
-			V extends { validate: (data: unknown) => { value: infer T } }
+		: V extends { validate: (data: unknown) => { value: infer T } }
 			? T
-			: // biome-ignore lint/suspicious/noExplicitAny: Required for type inference
-				V extends { validateAsync: (data: unknown) => Promise<{ value: infer T }> }
+			: V extends { validateAsync: (data: unknown) => Promise<{ value: infer T }> }
 				? T
-				: // biome-ignore lint/suspicious/noExplicitAny: Required for type inference
-					V extends { validateSync: (data: unknown) => infer T }
+				: V extends { validateSync: (data: unknown) => infer T }
 					? T
 					: never;
 
