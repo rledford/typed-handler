@@ -1,10 +1,10 @@
-import type { ValidatorAdapter } from '../types.js';
+import type { ValidatorAdapter } from "../types.js";
 
 export const zodAdapter: ValidatorAdapter<any> = {
-	name: 'zod',
+	name: "zod",
 	detect: (schema: unknown): boolean => {
-		if (!schema || typeof schema !== 'object') return false;
-		return '_def' in schema && 'parse' in schema;
+		if (!schema || typeof schema !== "object") return false;
+		return "_def" in schema && "parse" in schema;
 	},
 	parse: async (schema: any, data: unknown) => {
 		return await schema.parseAsync(data);
@@ -12,12 +12,12 @@ export const zodAdapter: ValidatorAdapter<any> = {
 };
 
 export const joiAdapter: ValidatorAdapter<any> = {
-	name: 'joi',
+	name: "joi",
 	detect: (schema: unknown): boolean => {
-		if (!schema || typeof schema !== 'object') return false;
-		const hasJoiMarkers = '$_root' in schema && 'type' in schema;
-		const hasValidateAsync = 'validateAsync' in schema && typeof (schema as Record<string, unknown>).validateAsync === 'function';
-		return hasJoiMarkers && hasValidateAsync;
+		if (!schema || typeof schema !== "object") return false;
+		if (!("$_root" in schema && "type" in schema)) return false;
+		if (!("validateAsync" in schema)) return false;
+		return typeof schema.validateAsync === "function";
 	},
 	parse: async (schema: any, data: unknown) => {
 		return await schema.validateAsync(data);
@@ -25,18 +25,14 @@ export const joiAdapter: ValidatorAdapter<any> = {
 };
 
 export const yupAdapter: ValidatorAdapter<any> = {
-	name: 'yup',
+	name: "yup",
 	detect: (schema: unknown): boolean => {
-		if (!schema || typeof schema !== 'object') return false;
-		return '__isYupSchema__' in schema;
+		if (!schema || typeof schema !== "object") return false;
+		return "__isYupSchema__" in schema;
 	},
 	parse: async (schema: any, data: unknown) => {
 		return await schema.validate(data, { abortEarly: false });
 	},
 };
 
-export const builtInAdapters: ValidatorAdapter<any>[] = [
-	zodAdapter,
-	joiAdapter,
-	yupAdapter,
-];
+export const builtInAdapters: ValidatorAdapter<any>[] = [zodAdapter, joiAdapter, yupAdapter];
