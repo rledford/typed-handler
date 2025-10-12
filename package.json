@@ -40,9 +40,9 @@
   "scripts": {
     "dev": "tsx watch examples/express-zod/index.ts",
     "build": "tsup && cp index.test-d.ts dist/",
-    "test": "vitest",
+    "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --run --coverage",
     "test:types": "tsd",
     "type-check": "tsc --noEmit",
     "lint": "biome check .",
