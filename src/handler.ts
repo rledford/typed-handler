@@ -165,7 +165,7 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 
 	handle<TOut>(fn: HandlerFunction<TInput, TContext, TOut>): Handler<TInput, TContext, TOut> {
 		const newHandler = this.clone() as unknown as Handler<TInput, TContext, TOut>;
-		newHandler.handlerFn = fn as HandlerFunction<TInput, TContext, unknown>;
+		newHandler.handlerFn = fn;
 		return newHandler;
 	}
 
