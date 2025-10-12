@@ -213,6 +213,26 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 	expectsMultiInput(): boolean {
 		return this.inputValidator?.isMultiInput ?? false;
 	}
+
+	async express() {
+		const { toExpress } = await import("./adapters/express.js");
+		return toExpress(this);
+	}
+
+	async fastify() {
+		const { toFastify } = await import("./adapters/fastify.js");
+		return toFastify(this);
+	}
+
+	async hono() {
+		const { toHono } = await import("./adapters/hono.js");
+		return toHono(this);
+	}
+
+	async raw() {
+		const { toRaw } = await import("./adapters/raw.js");
+		return toRaw(this);
+	}
 }
 
 /**
