@@ -15,11 +15,11 @@
     "type-safe",
     "framework-agnostic"
   ],
-  "author": "",
+  "author": "Ryan Ledford <rledford@users.noreply.github.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/rledford/typed-handler.git"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

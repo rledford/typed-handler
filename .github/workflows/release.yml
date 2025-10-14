@@ -2,10 +2,9 @@ name: Release
 
 on:
   workflow_dispatch:
-  # Temporarily disabled - npm not set up yet
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
