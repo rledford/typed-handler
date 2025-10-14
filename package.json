@@ -1,6 +1,6 @@
 {
   "name": "typed-handler",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A TypeScript library that provides a fluent, type-safe API for building request handlers with automatic validation and framework-agnostic design",
   "keywords": [
     "typescript",
