@@ -52,7 +52,7 @@
     "prepublishOnly": "pnpm build && pnpm test && pnpm test:types",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish --access public"
   },
   "peerDependencies": {
     "typescript": ">=4.7.0"
