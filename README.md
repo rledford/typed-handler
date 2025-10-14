@@ -1,34 +1,45 @@
 # typed-handler
 
-A TypeScript library that provides a fluent, type-safe API for building request handlers with automatic validation and framework-agnostic design.
+A TypeScript library for building type-safe operations with automatic validation and context management. Works with any validation library (Zod, Yup, Joi) and any runtime environment (Express, Fastify, event processors, CLI tools, batch jobs). The core library has zero runtime dependencies.
+
+## Overview
+
+typed-handler provides a fluent API for creating validated handlers where types are automatically inferred from your validation schemas. Define your input schema once and get end-to-end type safety without manual type annotations.
+
+```typescript
+import { handler } from 'typed-handler';
+import { z } from 'zod';
+
+const greet = handler()
+  .input(z.object({ name: z.string() }))
+  .handle(async ({ name }) => `Hello, ${name}!`);
+
+const result = await greet.execute({ name: 'World' });
+```
 
 ## Features
 
-- **Type-Safe**: Full TypeScript type inference throughout the handler chain
-- **Validator-Agnostic**: Works with Zod, Joi, Yup, or custom validators
-- **Framework-Agnostic**: Adapters for Express, Fastify, Hono, and more
-- **Fluent API**: Clean, chainable interface
-- **Context Flow**: Type-safe context passing through middleware
-- **Flexible Validation**: Support for runtime validation or type-only mode
-- **Minimal Dependencies**: Core library has zero dependencies
+- **Automatic Type Inference** - Types flow from validation schemas to handlers without manual annotations
+- **Validator-Agnostic** - Works with Zod, Joi, Yup, or custom validators
+- **Runtime-Agnostic** - Same handler code works in Express, Fastify, Hono, GraphQL resolvers, CLI tools, event processors
+- **Type-Safe Context** - Pass dependencies (db, logger, auth) through the handler chain with full type inference
+- **Fluent API** - Chainable interface for building handlers
+- **Zero Dependencies** - Core library has zero runtime dependencies
+- **Well-Tested** - 90%+ test coverage
 
-## Why typed-handler?
+## Use Cases
 
-### Developer Experience
+typed-handler works in any environment where you need validated, type-safe data processing:
 
-typed-handler provides a consistent, fluent API that reduces cognitive load and accelerates development. The type-safe builder pattern guides you through handler construction with full IntelliSense support, making it easy to build correct handlers the first time. Automatic type inference eliminates manual type annotations, reducing boilerplate while maintaining complete type safety throughout your application.
+- **Web APIs** - Express, Fastify, Hono routes with automatic request validation
+- **GraphQL** - Type-safe resolvers with input validation
+- **Event Processing** - Handle domain events and message queue processing
+- **Serverless Functions** - AWS Lambda, Cloudflare Workers, Vercel functions
+- **CLI Tools** - Process command-line arguments with validation
+- **Batch Jobs** - Transform data through multi-stage pipelines
+- **Background Workers** - Process queue messages with type safety
 
-### Cross-Platform Consistency
-
-Build handler logic once and deploy it anywhere. The framework-agnostic design means your core business logic remains unchanged whether you're building Express APIs, Fastify services, or processing events in a serverless function. The raw adapter extends this consistency to non-HTTP contexts like CLI tools, batch jobs, and background workers, ensuring your team uses the same patterns across all application types.
-
-### Testing Benefits
-
-Type-safe handlers make testing straightforward and reliable. Mock external services with the same type guarantees as production code, generate test fixtures with automatic validation, and write integration tests that catch type mismatches at compile time. The raw adapter enables direct handler testing without framework overhead, making unit tests faster and more focused on business logic.
-
-### Operational Benefits
-
-Runtime validation catches data integrity issues before they cascade through your system, while structured error handling provides consistent, actionable error responses. Middleware composition enables cross-cutting concerns like logging, metrics, and authentication to be applied consistently across handlers. In production, optional output validation provides an extra safety net during deployments and data migrations.
+The framework-agnostic design means you write your handler logic once and use it anywhere.
 
 ## Installation
 
@@ -73,9 +84,9 @@ fastify.post('/users', createUser.fastify());
 app.post('/users', createUser.hono());
 ```
 
-## Beyond Web APIs
+## Using Outside Web Frameworks
 
-While typed-handler excels at building web APIs, its framework-agnostic design makes it valuable for many other application types. The `raw` adapter allows you to use typed-handler's structured data processing, validation, and type inference in any context.
+The `raw` adapter allows you to use handlers in any environment without framework-specific integration.
 
 ```typescript
 import { handler, raw } from 'typed-handler';
@@ -92,17 +103,7 @@ const execute = raw(processData);
 const result = await execute(data);
 ```
 
-### Use Cases
-
-- **[Event Processing Systems](./docs/use-cases/event-processing.md)** - Handle domain events and integrate with event buses
-- **[CLI Tools and Scripts](./docs/use-cases/cli-tools.md)** - Process command-line arguments with validation
-- **[Batch Processing Jobs](./docs/use-cases/batch-jobs.md)** - Transform data through multi-stage pipelines
-- **[Function-as-a-Service](./docs/use-cases/faas.md)** - Build serverless functions for AWS Lambda, Cloudflare Workers, etc.
-- **[Testing and Mocking](./docs/use-cases/testing.md)** - Generate test fixtures and mock services
-- **[GraphQL Resolvers](./docs/use-cases/graphql.md)** - Create type-safe resolvers with validation
-- **[Background Job Processing](./docs/use-cases/background-jobs.md)** - Process queue messages and streams
-
-See the [use cases documentation](./docs/use-cases/) for detailed examples and patterns.
+See the [use cases documentation](./docs/use-cases/) for detailed examples and patterns including event processing, CLI tools, batch jobs, serverless functions, testing utilities, GraphQL resolvers, and background job processing.
 
 ## Development Setup
 
