@@ -176,4 +176,50 @@ describe("Express Adapter", () => {
 		expect(next).toHaveBeenCalled();
 		expect(res.json).not.toHaveBeenCalled();
 	});
+
+	it("toExpress should work with transform stage", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform((output) => ({ final: output.result + 10 }));
+
+		const expressHandler = toExpress(h);
+
+		const req = { body: { value: 5 } } as Request;
+		const res = {
+			json: vi.fn(),
+			status: vi.fn().mockReturnThis(),
+		} as unknown as Response;
+		const next = vi.fn() as NextFunction;
+
+		await expressHandler(req, res, next);
+
+		expect(res.json).toHaveBeenCalledWith({ final: 20 });
+		expect(next).not.toHaveBeenCalled();
+	});
+
+	it("toExpress should work with transform and context", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => ({ multiplier: 3 }))
+			.handle(async (input, ctx) => ({ result: input.value * ctx.multiplier }))
+			.transform((output, ctx) => ({
+				result: output.result,
+				multiplier: ctx.multiplier,
+			}));
+
+		const expressHandler = toExpress(h);
+
+		const req = { body: { value: 5 } } as Request;
+		const res = {
+			json: vi.fn(),
+			status: vi.fn().mockReturnThis(),
+		} as unknown as Response;
+		const next = vi.fn() as NextFunction;
+
+		await expressHandler(req, res, next);
+
+		expect(res.json).toHaveBeenCalledWith({ result: 15, multiplier: 3 });
+		expect(next).not.toHaveBeenCalled();
+	});
 });

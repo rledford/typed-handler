@@ -52,7 +52,16 @@ const createUser = handler()
     const user = await db.users.create(input);
     return user;
   })
-  .output(z.object({ id: z.string(), name: z.string(), email: z.string() }));
+  .transform((user) => ({
+    success: true,
+    data: user,
+    timestamp: new Date().toISOString(),
+  }))
+  .output(z.object({
+    success: z.boolean(),
+    data: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+    timestamp: z.string(),
+  }));
 
 // Use with Express
 app.post('/users', createUser.express());

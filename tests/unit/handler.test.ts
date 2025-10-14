@@ -312,3 +312,177 @@ describe("Handler Execution", () => {
 		expect(typeof rawHandler.execute).toBe("function");
 	});
 });
+
+describe("Handler Transform Stage", () => {
+	beforeEach(() => {
+		resetConfig();
+	});
+
+	it("transform() should execute with sync function", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform((output) => ({ transformed: output.result + 10 }));
+
+		const result = await h.execute({ value: 5 });
+		expect(result).toEqual({ transformed: 20 });
+	});
+
+	it("transform() should execute with async function", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform(async (output) => {
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				return { transformed: output.result + 10 };
+			});
+
+		const result = await h.execute({ value: 5 });
+		expect(result).toEqual({ transformed: 20 });
+	});
+
+	it("transform() should receive correct output and context", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => ({ multiplier: 3 }))
+			.handle(async (input, ctx) => ({ result: input.value * ctx.multiplier }))
+			.transform((output, ctx) => ({
+				result: output.result,
+				multiplier: ctx.multiplier,
+			}));
+
+		const result = await h.execute({ value: 5 });
+		expect(result).toEqual({ result: 15, multiplier: 3 });
+	});
+
+	it("transform() should not mutate original handler (immutability)", () => {
+		const h1 = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => input);
+
+		const h2 = h1.transform((output) => ({ transformed: output }));
+		expect(h1).not.toBe(h2);
+	});
+
+	it("handler chain without transform should work (backward compatibility)", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }));
+
+		const result = await h.execute({ value: 5 });
+		expect(result).toEqual({ result: 10 });
+	});
+
+	it("transform() with output validation should validate transformed output", async () => {
+		configure({ validateOutput: true });
+		const outputSchema = z.object({ final: z.number() });
+
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform((output) => ({ final: output.result + 5 }))
+			.output(outputSchema);
+
+		const result = await h.execute({ value: 5 });
+		expect(result).toEqual({ final: 15 });
+	});
+
+	it("transform() with output validation should fail on invalid transformed output", async () => {
+		configure({ validateOutput: true });
+		const outputSchema = z.object({ final: z.number() });
+
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform(() => ({ final: "invalid" }))
+			.output(outputSchema);
+
+		await expect(h.execute({ value: 5 })).rejects.toThrow();
+	});
+
+	it("transform() should handle errors and propagate them", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform(() => {
+				throw new Error("Transform error");
+			});
+
+		await expect(h.execute({ value: 5 })).rejects.toThrow("Transform error");
+	});
+
+	it("transform() can be used for data normalization", async () => {
+		const h = handler()
+			.input(z.object({ firstName: z.string(), lastName: z.string() }))
+			.handle(async (input) => ({
+				first: input.firstName,
+				last: input.lastName,
+			}))
+			.transform((output) => ({
+				fullName: `${output.first} ${output.last}`,
+				initials: `${output.first[0]}${output.last[0]}`,
+			}));
+
+		const result = await h.execute({ firstName: "John", lastName: "Doe" });
+		expect(result).toEqual({ fullName: "John Doe", initials: "JD" });
+	});
+
+	it("transform() can be used for data enrichment", async () => {
+		const h = handler()
+			.input(z.object({ items: z.array(z.number()) }))
+			.handle(async (input) => input.items)
+			.transform((output) => ({
+				items: output,
+				count: output.length,
+				sum: output.reduce((a, b) => a + b, 0),
+				average: output.length > 0 ? output.reduce((a, b) => a + b, 0) / output.length : 0,
+			}));
+
+		const result = await h.execute({ items: [1, 2, 3, 4, 5] });
+		expect(result).toEqual({
+			items: [1, 2, 3, 4, 5],
+			count: 5,
+			sum: 15,
+			average: 3,
+		});
+	});
+
+	it("transform() can be used for response wrapping", async () => {
+		const h = handler()
+			.input(z.object({ id: z.number() }))
+			.handle(async (input) => ({ id: input.id, name: "Test Item" }))
+			.transform((output) => ({
+				success: true,
+				data: output,
+				timestamp: Date.now(),
+			}));
+
+		const result = await h.execute({ id: 123 });
+		expect(result.success).toBe(true);
+		expect(result.data).toEqual({ id: 123, name: "Test Item" });
+		expect(typeof result.timestamp).toBe("number");
+	});
+
+	it("transform() should work with middleware and full chain", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => ({ userId: 42 }))
+			.handle(async (input, ctx) => ({
+				result: input.value * 2,
+				userId: ctx.userId,
+			}))
+			.transform((output, ctx) => ({
+				...output,
+				enriched: true,
+				contextUserId: ctx.userId,
+			}));
+
+		const result = await h.execute({ value: 5 });
+		expect(result).toEqual({
+			result: 10,
+			userId: 42,
+			enriched: true,
+			contextUserId: 42,
+		});
+	});
+});

@@ -139,8 +139,9 @@ A lightweight library that:
 │  2. Validate input (if configured)                          │
 │  3. Run middleware chain (build context)                    │
 │  4. Execute handler function                                │
-│  5. Validate output (if configured)                         │
-│  6. Return result                                           │
+│  5. Transform output (if defined)                           │
+│  6. Validate output (if configured)                         │
+│  7. Return result                                           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -194,11 +195,14 @@ class Handler<TInput, TContext, TOutput> {
   
   // Handler function
   handle<TOut>(fn: HandlerFunction<TInput, TContext, TOut>): Handler<TInput, TContext, TOut>;
-  
+
+  // Transform stage
+  transform<TTransformed>(fn: TransformFunction<TContext, TOutput, TTransformed>): Handler<TInput, TContext, TTransformed>;
+
   // Output validation
   output<T>(schema: unknown, adapter?: ValidatorAdapter<T>): Handler<TInput, TContext, InferOutput<typeof schema>>;
   output<T>(): Handler<TInput, TContext, T>; // Type-only mode
-  
+
   // Execution
   execute(input: unknown, context?: Partial<TContext>): Promise<TOutput>;
   
@@ -279,6 +283,12 @@ export type Middleware<TContext, TNewContext = {}> = (
   req: unknown,
   context: TContext
 ) => Promise<TNewContext> | TNewContext;
+
+// Transform function type
+export type TransformFunction<TContext, TInput, TOutput> = (
+  data: TInput,
+  context: TContext
+) => Promise<TOutput> | TOutput;
 
 // Validator adapter type
 export interface ValidatorAdapter<T> {
@@ -790,14 +800,15 @@ export class Handler<TInput = unknown, TContext = {}, TOutput = unknown> {
     adapter?: ValidatorAdapter<any>;
     isMultiInput: boolean;
   };
-  
+
   private outputValidator?: {
     schema: unknown;
     adapter?: ValidatorAdapter<any>;
   };
-  
+
   private middlewares: Middleware<any, any>[] = [];
   private handlerFn?: HandlerFunction<TInput, TContext, TOutput>;
+  private transformFn?: TransformFunction<TContext, TOutput, unknown>;
   private config: HandlerConfig;
 
   constructor(config?: Partial<HandlerConfig>) {
@@ -813,6 +824,7 @@ export class Handler<TInput = unknown, TContext = {}, TOutput = unknown> {
     newHandler.outputValidator = this.outputValidator;
     newHandler.middlewares = [...this.middlewares];
     newHandler.handlerFn = this.handlerFn;
+    newHandler.transformFn = this.transformFn;
     return newHandler;
   }
 }
@@ -861,12 +873,17 @@ async execute(rawInput: unknown, initialContext?: Partial<TContext>): Promise<TO
     }
     const output = await this.handlerFn(input, context);
 
-    // 4. Validate output
+    // 4. Transform output (if defined)
+    const transformedOutput = this.transformFn
+      ? await this.transformFn(output, context)
+      : output;
+
+    // 5. Validate output
     if (this.config.validateOutput && this.outputValidator) {
-      return await this.validateOutput(output);
+      return await this.validateOutput(transformedOutput);
     }
 
-    return output;
+    return transformedOutput;
   } catch (error) {
     this.config.logger.error('Handler execution error', { error });
     throw error;
@@ -1214,7 +1231,52 @@ const createResource = handler()
   .output(ResourceSchema);
 ```
 
-### Example 8: Error Handling
+### Example 8: Transform Stage
+
+```typescript
+const getUser = handler()
+  .input(z.object({ id: z.string() }))
+  .handle(async (input) => {
+    const user = await db.users.findById(input.id);
+    return user;
+  })
+  .transform((user) => ({
+    success: true,
+    data: user,
+    timestamp: new Date().toISOString(),
+  }))
+  .output(z.object({
+    success: z.boolean(),
+    data: UserSchema,
+    timestamp: z.string(),
+  }));
+```
+
+### Example 9: Transform with Context
+
+```typescript
+const createPost = handler()
+  .use(authMiddleware)
+  .input(z.object({
+    title: z.string(),
+    content: z.string(),
+  }))
+  .handle(async (input, ctx) => {
+    const post = await db.posts.create({
+      ...input,
+      authorId: ctx.user.id,
+    });
+    return post;
+  })
+  .transform((post, ctx) => ({
+    ...post,
+    authorName: ctx.user.name,
+    enrichedAt: Date.now(),
+  }))
+  .output(PostSchema);
+```
+
+### Example 10: Error Handling
 
 ```typescript
 import { HandlerError } from 'typed-handler';
@@ -1333,15 +1395,7 @@ For large applications with hundreds of routes, this is negligible (<1MB total).
      });
    ```
 
-5. **Request Transformation**
-   ```typescript
-   handler()
-     .input(schema)
-     .transform((input) => normalize(input))
-     .handle(fn);
-   ```
-
-6. **Batch Operations**
+5. **Batch Operations**
    ```typescript
    handler()
      .inputBatch(schema)

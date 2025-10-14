@@ -142,4 +142,40 @@ describe("Fastify Adapter", () => {
 
 		await expect(fastifyHandler(request, reply)).rejects.toThrow();
 	});
+
+	it("toFastify should work with transform stage", async () => {
+		const h = handler()
+			.input(Joi.object({ value: Joi.number().required() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform((output) => ({ final: output.result + 10 }));
+
+		const fastifyHandler = toFastify(h);
+
+		const request = { body: { value: 5 } } as FastifyRequest;
+		const reply = {} as FastifyReply;
+
+		const result = await fastifyHandler(request, reply);
+
+		expect(result).toEqual({ final: 20 });
+	});
+
+	it("toFastify should work with transform and context", async () => {
+		const h = handler()
+			.input(Joi.object({ value: Joi.number().required() }))
+			.use(async () => ({ multiplier: 3 }))
+			.handle(async (input, ctx) => ({ result: input.value * ctx.multiplier }))
+			.transform((output, ctx) => ({
+				result: output.result,
+				multiplier: ctx.multiplier,
+			}));
+
+		const fastifyHandler = toFastify(h);
+
+		const request = { body: { value: 5 } } as FastifyRequest;
+		const reply = {} as FastifyReply;
+
+		const result = await fastifyHandler(request, reply);
+
+		expect(result).toEqual({ result: 15, multiplier: 3 });
+	});
 });

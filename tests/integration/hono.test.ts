@@ -166,4 +166,48 @@ describe("Hono Adapter", () => {
 
 		await expect(honoHandler(c)).rejects.toThrow();
 	});
+
+	it("toHono should work with transform stage", async () => {
+		const h = handler()
+			.input(yup.object({ value: yup.number().required() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform((output) => ({ final: output.result + 10 }));
+
+		const honoHandler = toHono(h);
+
+		const c = {
+			req: {
+				json: vi.fn().mockResolvedValue({ value: 5 }),
+			},
+			json: vi.fn(),
+		} as unknown as Context;
+
+		await honoHandler(c);
+
+		expect(c.json).toHaveBeenCalledWith({ final: 20 });
+	});
+
+	it("toHono should work with transform and context", async () => {
+		const h = handler()
+			.input(yup.object({ value: yup.number().required() }))
+			.use(async () => ({ multiplier: 3 }))
+			.handle(async (input, ctx) => ({ result: input.value * ctx.multiplier }))
+			.transform((output, ctx) => ({
+				result: output.result,
+				multiplier: ctx.multiplier,
+			}));
+
+		const honoHandler = toHono(h);
+
+		const c = {
+			req: {
+				json: vi.fn().mockResolvedValue({ value: 5 }),
+			},
+			json: vi.fn(),
+		} as unknown as Context;
+
+		await honoHandler(c);
+
+		expect(c.json).toHaveBeenCalledWith({ result: 15, multiplier: 3 });
+	});
 });

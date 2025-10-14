@@ -14,6 +14,12 @@ export type Middleware<TContext, TNewContext = object> = (
 	context: TContext,
 ) => Promise<TNewContext> | TNewContext;
 
+// Transform function type
+export type TransformFunction<TContext, TInput, TOutput> = (
+	data: TInput,
+	context: TContext,
+) => Promise<TOutput> | TOutput;
+
 // Validator adapter interface
 export interface ValidatorAdapter<T> {
 	parse: (schema: unknown, data: unknown) => Promise<T> | T;

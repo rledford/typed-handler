@@ -102,4 +102,34 @@ describe("Raw Adapter", () => {
 
 		expect(result).toEqual({ value: 42, userId: "123" });
 	});
+
+	it("toRaw should work with transform stage", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.handle(async (input) => ({ result: input.value * 2 }))
+			.transform((output) => ({ final: output.result + 10 }));
+
+		const rawHandler = toRaw(h);
+
+		const result = await rawHandler.execute({ value: 5 }, {});
+
+		expect(result).toEqual({ final: 20 });
+	});
+
+	it("toRaw should work with transform and context", async () => {
+		const h = handler()
+			.input(z.object({ value: z.number() }))
+			.use(async () => ({ multiplier: 3 }))
+			.handle(async (input, ctx) => ({ result: input.value * ctx.multiplier }))
+			.transform((output, ctx) => ({
+				result: output.result,
+				multiplier: ctx.multiplier,
+			}));
+
+		const rawHandler = toRaw(h);
+
+		const result = await rawHandler.execute({ value: 5 }, {});
+
+		expect(result).toEqual({ result: 15, multiplier: 3 });
+	});
 });
