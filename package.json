@@ -9,6 +9,7 @@
     "express",
     "fastify",
     "hono",
+    "nestjs",
     "zod",
     "joi",
     "yup",
