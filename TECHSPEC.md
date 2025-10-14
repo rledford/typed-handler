@@ -1029,6 +1029,15 @@ typed-handler/
 │   ├── api-reference.md
 │   ├── validators.md
 │   ├── adapters.md
+│   ├── use-cases/
+│   │   ├── README.md
+│   │   ├── event-processing.md
+│   │   ├── cli-tools.md
+│   │   ├── batch-jobs.md
+│   │   ├── faas.md
+│   │   ├── testing.md
+│   │   ├── graphql.md
+│   │   └── background-jobs.md
 │   ├── migration-guides/
 │   │   ├── from-express.md
 │   │   └── from-nestjs.md
