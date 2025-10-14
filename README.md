@@ -62,6 +62,7 @@ const greetWithMetadata = greet
 typed-handler works in any environment where you need validated, type-safe data processing:
 
 - **Web APIs** - Express, Fastify, Hono routes with automatic request validation
+- **NestJS Event Systems** - Event handlers, queue processors, and microservices with validation
 - **GraphQL** - Type-safe resolvers with input validation
 - **Event Processing** - Handle domain events and message queue processing
 - **Serverless Functions** - AWS Lambda, Cloudflare Workers, Vercel functions
