@@ -4,7 +4,13 @@
 
 import { getConfig } from "./config.js";
 import { ValidationError } from "./errors/index.js";
-import type { HandlerConfig, HandlerFunction, Middleware, ValidatorAdapter } from "./types.js";
+import type {
+	HandlerConfig,
+	HandlerFunction,
+	Middleware,
+	TransformFunction,
+	ValidatorAdapter,
+} from "./types.js";
 import { detectValidator } from "./validators/index.js";
 
 export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
@@ -22,6 +28,7 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 	// biome-ignore lint/suspicious/noExplicitAny: Middleware chain requires flexibility
 	private middlewares: Middleware<any, any>[] = [];
 	private handlerFn?: HandlerFunction<TInput, TContext, TOutput>;
+	private transformFn?: TransformFunction<TContext, TOutput, unknown>;
 	private config: HandlerConfig;
 
 	constructor(config?: Partial<HandlerConfig>) {
@@ -34,6 +41,7 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 		newHandler.outputValidator = this.outputValidator;
 		newHandler.middlewares = [...this.middlewares];
 		newHandler.handlerFn = this.handlerFn;
+		newHandler.transformFn = this.transformFn;
 		return newHandler;
 	}
 
@@ -184,6 +192,14 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 		return newHandler;
 	}
 
+	transform<TTransformed>(
+		fn: TransformFunction<TContext, TOutput, TTransformed>,
+	): Handler<TInput, TContext, TTransformed> {
+		const newHandler = this.clone() as unknown as Handler<TInput, TContext, TTransformed>;
+		newHandler.transformFn = fn as TransformFunction<TContext, unknown, unknown>;
+		return newHandler;
+	}
+
 	async execute(input: unknown, initialContext?: Partial<TContext>): Promise<TOutput> {
 		try {
 			if (!this.handlerFn) {
@@ -203,7 +219,11 @@ export class Handler<TInput = unknown, TContext = object, TOutput = unknown> {
 
 			const output = await this.handlerFn(validatedInput, context);
 
-			return this.config.validateOutput ? await this.validateOutput(output) : (output as TOutput);
+			const transformedOutput = this.transformFn ? await this.transformFn(output, context) : output;
+
+			return this.config.validateOutput
+				? await this.validateOutput(transformedOutput)
+				: (transformedOutput as TOutput);
 		} catch (error) {
 			this.config.logger.error("Handler execution failed", error);
 			throw error;

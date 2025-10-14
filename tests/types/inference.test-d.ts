@@ -96,3 +96,59 @@ const h9 = handler()
 	.output(zodOutputSchema);
 
 expectType<Promise<{ message: string }>>(h9.execute({ name: "Bob", age: 25 }, {}));
+
+const h10 = handler()
+	.input(zodInputSchema)
+	.handle((input) => {
+		expectType<{ name: string; age: number }>(input);
+		return { result: input.age * 2 };
+	})
+	.transform((output) => {
+		expectType<{ result: number }>(output);
+		return { final: output.result + 10 };
+	});
+
+expectType<Promise<{ final: number }>>(h10.execute({ name: "Alice", age: 30 }, {}));
+
+const h11 = handler()
+	.input(zodInputSchema)
+	.use(async () => ({ multiplier: 3 }))
+	.handle((input, ctx) => {
+		expectType<{ name: string; age: number }>(input);
+		expectType<{ multiplier: number }>(ctx);
+		return { result: input.age * ctx.multiplier };
+	})
+	.transform((output, ctx) => {
+		expectType<{ result: number }>(output);
+		expectType<{ multiplier: number }>(ctx);
+		return { final: output.result, multiplier: ctx.multiplier };
+	});
+
+expectType<Promise<{ final: number; multiplier: number }>>(
+	h11.execute({ name: "Bob", age: 25 }, {}),
+);
+
+const h12 = handler()
+	.input(zodInputSchema)
+	.handle((input) => ({ items: [input.name] }))
+	.transform((output) => ({
+		items: output.items,
+		count: output.items.length,
+	}))
+	.output(z.object({ items: z.array(z.string()), count: z.number() }));
+
+expectType<Promise<{ items: string[]; count: number }>>(
+	h12.execute({ name: "Alice", age: 30 }, {}),
+);
+
+const h13 = handler()
+	.input(zodInputSchema)
+	.handle((input) => ({ message: `Hello ${input.name}` }))
+	.transform((output) => ({
+		success: true,
+		data: output,
+	}));
+
+expectType<Promise<{ success: boolean; data: { message: string } }>>(
+	h13.execute({ name: "Bob", age: 25 }, {}),
+);

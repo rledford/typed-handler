@@ -49,7 +49,6 @@ Thumbs.db
 *.pem
 
 # Changesets
-.changeset/*.md
 !.changeset/README.md
 !.changeset/config.json
 
