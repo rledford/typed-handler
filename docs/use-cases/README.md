@@ -10,7 +10,7 @@ While `typed-handler` excels at building type-safe web APIs, its framework-agnos
 - **[Function-as-a-Service](./faas.md)** - Create type-safe serverless functions for AWS Lambda, Cloudflare Workers, and other FaaS platforms
 - **[Testing and Mocking](./testing.md)** - Generate test fixtures and mock external services with type-safe handlers
 - **[GraphQL Resolvers](./graphql.md)** - Build type-safe GraphQL field resolvers with validation and context management
-- **[NestJS Integration](./nestjs.md)** - Integrate typed-handler with NestJS using adapters, decorators, and services
+- **[NestJS Integration](./nestjs.md)** - Add validation to NestJS event handlers, queue processors, and microservices
 - **[Background Job Processing](./background-jobs.md)** - Process queue messages and stream events with type-safe handlers
 
 Each use case demonstrates how typed-handler's raw adapter enables structured data processing beyond traditional HTTP request handling.
