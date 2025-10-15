@@ -131,6 +131,59 @@ describe("Hono Adapter", () => {
 		expect(c.json).toHaveBeenCalledWith({ created: true, name: "Bob" }, 201);
 	});
 
+	it("toHono should apply custom headers from ResponseObject", async () => {
+		const h = handler()
+			.input(yup.object({ name: yup.string().required() }))
+			.handle(async (input) => ({
+				status: 200,
+				body: { message: `Hello ${input.name}` },
+				headers: {
+					"X-Custom-Header": "custom-value",
+					"X-Request-Id": "123-456-789",
+				},
+			}));
+
+		const honoHandler = toHono(h);
+
+		const c = {
+			req: {
+				json: vi.fn().mockResolvedValue({ name: "Alice" }),
+			},
+			json: vi.fn(),
+			header: vi.fn(),
+		} as unknown as Context;
+
+		await honoHandler(c);
+
+		expect(c.header).toHaveBeenCalledWith("X-Custom-Header", "custom-value");
+		expect(c.header).toHaveBeenCalledWith("X-Request-Id", "123-456-789");
+		expect(c.json).toHaveBeenCalledWith({ message: "Hello Alice" }, 200);
+	});
+
+	it("toHono should handle ResponseObject without headers", async () => {
+		const h = handler()
+			.input(yup.object({ name: yup.string().required() }))
+			.handle(async (input) => ({
+				status: 200,
+				body: { message: `Hello ${input.name}` },
+			}));
+
+		const honoHandler = toHono(h);
+
+		const c = {
+			req: {
+				json: vi.fn().mockResolvedValue({ name: "Bob" }),
+			},
+			json: vi.fn(),
+			header: vi.fn(),
+		} as unknown as Context;
+
+		await honoHandler(c);
+
+		expect(c.header).not.toHaveBeenCalled();
+		expect(c.json).toHaveBeenCalledWith({ message: "Hello Bob" }, 200);
+	});
+
 	it("toHono should throw errors for framework error handling", async () => {
 		const h = handler()
 			.input(yup.object({ value: yup.number().required() }))

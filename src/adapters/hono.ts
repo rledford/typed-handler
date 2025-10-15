@@ -16,6 +16,9 @@ export function toHono<TInput, TContext, TOutput>(handler: Handler<TInput, TCont
 		const result = await handler.execute(input as TInput, { c } as TContext);
 
 		if (isResponseObject(result)) {
+			if (result.headers) {
+				Object.entries(result.headers).forEach(([key, value]) => c.header(key, value));
+			}
 			return c.json(result.body, result.status as Parameters<typeof c.json>[1]);
 		}
 		return c.json(result);

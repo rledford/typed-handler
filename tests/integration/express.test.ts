@@ -133,6 +133,61 @@ describe("Express Adapter", () => {
 		expect(res.json).toHaveBeenCalledWith({ created: true, name: "Bob" });
 	});
 
+	it("toExpress should apply custom headers from ResponseObject", async () => {
+		const h = handler()
+			.input(z.object({ name: z.string() }))
+			.handle(async (input) => ({
+				status: 200,
+				body: { message: `Hello ${input.name}` },
+				headers: {
+					"X-Custom-Header": "custom-value",
+					"X-Request-Id": "123-456-789",
+				},
+			}));
+
+		const expressHandler = toExpress(h);
+
+		const req = { body: { name: "Alice" } } as Request;
+		const res = {
+			json: vi.fn(),
+			status: vi.fn().mockReturnThis(),
+			set: vi.fn(),
+		} as unknown as Response;
+		const next = vi.fn() as NextFunction;
+
+		await expressHandler(req, res, next);
+
+		expect(res.set).toHaveBeenCalledWith("X-Custom-Header", "custom-value");
+		expect(res.set).toHaveBeenCalledWith("X-Request-Id", "123-456-789");
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({ message: "Hello Alice" });
+	});
+
+	it("toExpress should handle ResponseObject without headers", async () => {
+		const h = handler()
+			.input(z.object({ name: z.string() }))
+			.handle(async (input) => ({
+				status: 200,
+				body: { message: `Hello ${input.name}` },
+			}));
+
+		const expressHandler = toExpress(h);
+
+		const req = { body: { name: "Bob" } } as Request;
+		const res = {
+			json: vi.fn(),
+			status: vi.fn().mockReturnThis(),
+			set: vi.fn(),
+		} as unknown as Response;
+		const next = vi.fn() as NextFunction;
+
+		await expressHandler(req, res, next);
+
+		expect(res.set).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({ message: "Hello Bob" });
+	});
+
 	it("toExpress should call next() with error on failure", async () => {
 		const h = handler()
 			.input(z.object({ value: z.number() }))

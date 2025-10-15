@@ -22,6 +22,9 @@ export function toFastify<TInput, TContext, TOutput>(handler: Handler<TInput, TC
 		);
 
 		if (isResponseObject(result)) {
+			if (result.headers) {
+				Object.entries(result.headers).forEach(([key, value]) => reply.header(key, value));
+			}
 			return reply.status(result.status).send(result.body);
 		}
 		return result;

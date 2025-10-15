@@ -23,6 +23,9 @@ export function toExpress<TInput, TContext, TOutput>(handler: Handler<TInput, TC
 			);
 
 			if (isResponseObject(result)) {
+				if (result.headers) {
+					Object.entries(result.headers).forEach(([key, value]) => res.set(key, value));
+				}
 				res.status(result.status).json(result.body);
 			} else {
 				res.json(result);
