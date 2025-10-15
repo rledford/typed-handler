@@ -1,5 +1,11 @@
 # typed-handler
 
+## 0.2.0
+
+### Minor Changes
+
+- Add custom header support to ResponseObject. Framework adapters (Express, Fastify, Hono) now apply custom headers from ResponseObject when present.
+
 ## 0.1.0
 
 ### Minor Changes
