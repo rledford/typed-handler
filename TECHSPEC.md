@@ -481,6 +481,9 @@ export function toExpress<TInput, TContext, TOutput>(
 
       // Handle response format
       if (isResponseObject(result)) {
+        if (result.headers) {
+          Object.entries(result.headers).forEach(([key, value]) => res.set(key, value));
+        }
         res.status(result.status).json(result.body);
       } else {
         res.json(result);
@@ -511,6 +514,9 @@ export function toFastify<TInput, TContext, TOutput>(
     const result = await handler.execute(input, { request, reply });
 
     if (isResponseObject(result)) {
+      if (result.headers) {
+        Object.entries(result.headers).forEach(([key, value]) => reply.header(key, value));
+      }
       return reply.status(result.status).send(result.body);
     }
     return result;
@@ -537,6 +543,9 @@ export function toHono<TInput, TContext, TOutput>(
     const result = await handler.execute(input, { c });
 
     if (isResponseObject(result)) {
+      if (result.headers) {
+        Object.entries(result.headers).forEach(([key, value]) => c.header(key, value));
+      }
       return c.json(result.body, result.status);
     }
     return c.json(result);

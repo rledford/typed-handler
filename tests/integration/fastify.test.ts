@@ -115,6 +115,59 @@ describe("Fastify Adapter", () => {
 		expect(reply.send).toHaveBeenCalledWith({ created: true, name: "Bob" });
 	});
 
+	it("toFastify should apply custom headers from ResponseObject", async () => {
+		const h = handler()
+			.input(Joi.object({ name: Joi.string().required() }))
+			.handle(async (input) => ({
+				status: 200,
+				body: { message: `Hello ${input.name}` },
+				headers: {
+					"X-Custom-Header": "custom-value",
+					"X-Request-Id": "123-456-789",
+				},
+			}));
+
+		const fastifyHandler = toFastify(h);
+
+		const request = { body: { name: "Alice" } } as FastifyRequest;
+		const reply = {
+			status: vi.fn().mockReturnThis(),
+			send: vi.fn(),
+			header: vi.fn(),
+		} as unknown as FastifyReply;
+
+		await fastifyHandler(request, reply);
+
+		expect(reply.header).toHaveBeenCalledWith("X-Custom-Header", "custom-value");
+		expect(reply.header).toHaveBeenCalledWith("X-Request-Id", "123-456-789");
+		expect(reply.status).toHaveBeenCalledWith(200);
+		expect(reply.send).toHaveBeenCalledWith({ message: "Hello Alice" });
+	});
+
+	it("toFastify should handle ResponseObject without headers", async () => {
+		const h = handler()
+			.input(Joi.object({ name: Joi.string().required() }))
+			.handle(async (input) => ({
+				status: 200,
+				body: { message: `Hello ${input.name}` },
+			}));
+
+		const fastifyHandler = toFastify(h);
+
+		const request = { body: { name: "Bob" } } as FastifyRequest;
+		const reply = {
+			status: vi.fn().mockReturnThis(),
+			send: vi.fn(),
+			header: vi.fn(),
+		} as unknown as FastifyReply;
+
+		await fastifyHandler(request, reply);
+
+		expect(reply.header).not.toHaveBeenCalled();
+		expect(reply.status).toHaveBeenCalledWith(200);
+		expect(reply.send).toHaveBeenCalledWith({ message: "Hello Bob" });
+	});
+
 	it("toFastify should throw errors for framework error handling", async () => {
 		const h = handler()
 			.input(Joi.object({ value: Joi.number().required() }))
